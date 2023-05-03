@@ -13,9 +13,11 @@ import (
 )
 
 type Controlloer struct {
-	Port int
-	Ip   string
+	Port int    `json:"port"`
+	Ip   string `json:"ip"`
 }
+
+var cfg *thrift.TConfiguration = nil
 
 func ServerStart() {
 	// go Httpserver()
@@ -39,7 +41,7 @@ func (t *Controlloer) ListenAddr() string {
 
 func (t *Controlloer) Server() {
 	transportFactory := thrift.NewTBufferedTransportFactory(1024)
-	protocolFactory := thrift.NewTCompactProtocolFactory()
+	protocolFactory := thrift.NewTBinaryProtocolFactoryConf(cfg)
 	serverTransport, err := thrift.NewTServerSocket(t.ListenAddr())
 	if err != nil {
 		logger.Error("server:", err.Error())
@@ -97,11 +99,6 @@ func controllerHandler(tt thrift.TTransport) {
 			*gorutineclose = true
 		}
 	}()
-	node := &PMANode{
-		Ts:     tt,
-		Client: NewPMAClient(tt),
-	}
-	NP.Register(node)
 
 	defer func() { tt.Close() }()
 	monitorChan := make(chan string, 1)
@@ -114,7 +111,7 @@ func controllerHandler(tt thrift.TTransport) {
 
 func NewPMAClient(tt thrift.TTransport) *PMAServiceClient {
 	transportFactory := thrift.NewTBufferedTransportFactory(1024)
-	protocolFactory := thrift.NewTCompactProtocolFactory()
+	protocolFactory := thrift.NewTBinaryProtocolFactoryConf(cfg)
 	useTransport, _ := transportFactory.GetTransport(tt)
 	return NewPMAServiceClientFactory(useTransport, protocolFactory)
 }
@@ -133,12 +130,17 @@ func PMAProcessor(client thrift.TTransport, gorutineclose *bool, monitorChan cha
 		*gorutineclose = true
 		monitorChan <- "Processor end"
 	}()
-	compactprotocol := thrift.NewTCompactProtocol(client)
-	// pub := strconv.Itoa(time.Now().Nanosecond())
-	handler := &PMAImpl{Client: client}
+	node := &PMAServiceNode{
+		Ts:     client,
+		Client: NewPMAClient(client),
+	}
+	NP.AddConn(node)
+
+	protocol := thrift.NewTBinaryProtocolConf(client, cfg)
+	handler := &PMAImpl{Client: client, Node: node}
 	processor := NewPMAServiceProcessor(handler)
 	for {
-		ok, err := processor.Process(context.Background(), compactprotocol, compactprotocol)
+		ok, err := processor.Process(context.Background(), protocol, protocol)
 		if err, ok := err.(thrift.TTransportException); ok && err.TypeId() == thrift.END_OF_FILE {
 			return nil
 		} else if err != nil {
