@@ -21,6 +21,7 @@ type MsgACK struct {
 	Data AckData `json:"data"`
 }
 
+// 心跳信息
 type HeartBeatData struct {
 	Account string `json:"account"`
 }
@@ -44,18 +45,76 @@ func (p *HeartBeat) Process(content string) string {
 
 // ------------------end--------------------
 
-// 子站或者主站主动发送设备变位信息
+// 主站请求全遥信以及闭锁信息
 type DeviceStatus struct {
 	DdeviceNo   string `json:"deviceNo"`
 	Status      string `json:"status"`
+	BsStatus    string `json:"bsStatus"`
 	RelatedInfo string `json:"relatedInfo"`
 	HookTIme    string `json:"HookTIme"`
 }
+type AskAllYXAndBS struct {
+	BaseData
+	DeviceStatus []*DeviceStatus `json:"deviceStatus,omitempty"`
+}
+
+// 发送请求
+// func (p *AskAllYXAndBS) Request(content string) string {
+// 	err := json.Unmarshal([]byte(content), p)
+// 	if err != nil {
+// 		logger.Error(err)
+// 		return ""
+// 	}
+// 	content_byte, _ := json.Marshal(p)
+// 	return string(content_byte)
+// }
+
+// 接收子站返回信息
+func (p *AskAllYXAndBS) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("Recv AskAllYXAndBS ACK", p)
+	return ""
+}
+
+// ------------------end--------------------
+
+// 子站或者主站主动发送设备变位信息
 type ChangedDeviceStatus struct {
 	BaseData
 	DeviceStatus []DeviceStatus `json:"deviceStatus"`
 }
 
+type ChangedDeviceStatusAck struct {
+	MsgACK
+}
+
+// 发送请求
+// func (p *ChangedDeviceStatus) Request(content string) string {
+// 	err := json.Unmarshal([]byte(content), p)
+// 	if err != nil {
+// 		logger.Error(err)
+// 		return ""
+// 	}
+// 	content_byte, _ := json.Marshal(p)
+// 	return string(content_byte)
+// }
+
+// 接收子站返回信息
+func (p *ChangedDeviceStatusAck) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("Recv ChangedDeviceStatus ACK", p)
+	return ""
+}
+
+// 处理子站信息
 func (p *ChangedDeviceStatus) Process(content string) string {
 	err := json.Unmarshal([]byte(content), p)
 	if err != nil {
@@ -71,21 +130,45 @@ func (p *ChangedDeviceStatus) Process(content string) string {
 // ------------------end--------------------
 
 // 子站或者主站主动发送设备闭锁信息
-type DeviceBSInfo struct {
-	DeviceNo string `json:"deviceNo"`
-	BsStatus string `json:"bsStatus"`
-}
 type SendDeviceOperInfo struct {
 	BaseData
-	DeviceBSInfo []DeviceBSInfo `json:"deviceBSInfo"`
+	DeviceBSInfo []DeviceStatus `json:"deviceBSInfo"`
+}
+type SendDeviceOperInfoAck struct {
+	MsgACK
 }
 
+// 发送请求
+func (p *SendDeviceOperInfo) Request(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	content_byte, _ := json.Marshal(p)
+	return string(content_byte)
+}
+
+// 接收子站返回信息
+func (p *SendDeviceOperInfoAck) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("Recv SendDeviceOperInfo ACK", p)
+	return ""
+}
+
+// 处理子站信息
 func (p *SendDeviceOperInfo) Process(content string) string {
 	err := json.Unmarshal([]byte(content), p)
 	if err != nil {
 		logger.Error(err)
 		return ""
 	}
+	// 标注一下
+	p.direction = "SM"
 	logger.Debug("SendDeviceOperInfo process..", p)
 	return process("MS_SendDeviceOperInfo_ACK", p.Station)
 }
@@ -171,7 +254,7 @@ func (p *SendGraphFileInfo) Process(content string) string {
 
 // ------------------end--------------------
 
-// 子站上送设备信息到主
+// 子站上送设备信息到主站
 type DeviceInfoData struct {
 	DeviceName  string `json:"deviceName"`
 	Description string `json:"description"`
@@ -327,6 +410,167 @@ func (p *SendStationBaseInfo) Process(content string) string {
 
 // ------------------end--------------------
 
+// 子站上送五防设备资产详细信息（新疆）
+type WFDeviceData struct {
+	WFDeviceName string `json:"WFDeviceName"`
+	DeviceType   string `json:"DeviceType"`
+	ProductDate  string `json:"ProductDate"`
+	StartupDate  string `json:"StartupDate"`
+	ValidDate    string `json:"ValidDate"`
+	IsGood       string `json:"IsGood"`
+	DeviceModel  string `json:"DeviceModel"`
+	Remarks      string `json:"Remarks"`
+}
+type WFlocks struct {
+	LockName     string `json:"LockName"`
+	LockType     string `json:"LockType"`
+	RelateDevice string `json:"RelateDevice"`
+	ProductDate  string `json:"ProductDate"`
+	StartupDate  string `json:"StartupDate"`
+	ValidDate    string `json:"ValidDate"`
+	IsGood       string `json:"IsGood"`
+	Remarks      string `json:"Remarks"`
+}
+type WFDeviceInfo struct {
+	WFDeviceData []WFDeviceData `json:"WFDeviceData"`
+	WFlocks      []WFlocks      `json:"WFlocks"`
+}
+
+type SendWFDeviceInfo struct {
+	BaseData
+	Data WFDeviceInfo `json:"data"`
+}
+
+func (p *SendWFDeviceInfo) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("SendWFDeviceInfo process..", p)
+	return process("MS_SendWFDeviceInfo_ACK", p.Station)
+}
+
+// ------------------end--------------------
+
+// 子站上送缺陷到主站（新疆）
+type DefectData struct {
+	ID           string `json:"ID"`
+	Station      string `json:"Station"`
+	DefectDescr  string `json:"DefectDescr"`
+	DefectType   string `json:"DefectType"`
+	WriteType    string `json:"WriteType"`
+	DefectKind   string `json:"DefectKind"`
+	Reason       string `json:"Reason"`
+	Measure      string `json:"Measure"`
+	HandPerson   string `json:"HandPerson"`
+	RecordPerson string `json:"RecordPerson"`
+	LogTime      string `json:"LogTime"`
+	DefectObject string `json:"DefectObject"`
+	ProductModel string `json:"ProductModel"`
+	DefectStatus string `json:"DefectStatus"`
+	SolvetTime   string `json:"SolvetTime"`
+	Remark       string `json:"Remark"`
+}
+type WFDefectData struct {
+	DefectData []DefectData `json:"DefectData"`
+}
+
+type SendWFDefect struct {
+	BaseData
+	Data WFDefectData `json:"data"`
+}
+
+func (p *SendWFDefect) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("SendWFDefect process..", p)
+	return process("MS_SendWFDefect_ACK", p.Station)
+}
+
+// ------------------end--------------------
+
+// 子站上送操作票信息（新疆）
+type OpSheet struct {
+	Sequence    string `json:"Sequence"`
+	Hint        string `json:"Hint"`
+	Sbbh        string `json:"SBBH"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	RelatedInfo string `json:"relatedInfo"`
+	ToKey       string `json:"ToKey"`
+	ToPrinter   string `json:"ToPrinter"`
+	IsHintItem  string `json:"isHintItem"`
+	FinishTime  string `json:"FinishTime"`
+}
+type HistoryTicketData struct {
+	AreaName        string    `json:"AreaName"`
+	Station         string    `json:"Station"`
+	TaskType        string    `json:"TaskType"`
+	TaskName        string    `json:"TaskName"`
+	HistoryID       string    `json:"HistoryID"`
+	ClassName       string    `json:"ClassName"`
+	ToKeyTime       string    `json:"ToKeyTime"`
+	FinishTime      string    `json:"FinishTime"`
+	Writer          string    `json:"Writer"`
+	WriterStartTime string    `json:"WriterStartTime"`
+	WriterEndTime   string    `json:"WriterEndTime"`
+	Operator        string    `json:"Operator"`
+	User4           string    `json:"User4"`
+	OpSheet         []OpSheet `json:"OpSheet"`
+}
+
+type SendHistoryTicket struct {
+	BaseData
+	Data HistoryTicketData `json:"data"`
+}
+
+func (p *SendHistoryTicket) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("SendHistoryTicket process..", p)
+	return process("MS_SendHistoryTicket_ACK", p.Station)
+}
+
+// 上送操作票追忆(黑匣子)信息（新疆）
+type OpOpRecords struct {
+	Sequence     string `json:"Sequence"`
+	Index        string `json:"Index"`
+	Hint         string `json:"Hint"`
+	OpMode       string `json:"OpMode"`
+	OpTime       string `json:"OpTime"`
+	IsStandardOp string `json:"IsStandardOp"`
+	OpDevice     string `json:"OpDevice"`
+}
+type RecallInfoData struct {
+	AreaName    string        `json:"AreaName"`
+	Station     string        `json:"Station"`
+	HistoryID   string        `json:"HistoryID"`
+	OpOpRecords []OpOpRecords `json:"OpOpRecords"`
+}
+type SendRecallInfo struct {
+	BaseData
+	Data RecallInfoData `json:"data"`
+}
+
+func (p *SendRecallInfo) Process(content string) string {
+	err := json.Unmarshal([]byte(content), p)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	logger.Debug("SendRecallInfo process..", p)
+	return process("MS_SendRecallInfo_ACK", p.Station)
+}
+
+// ------------------end-------------------
+
 func process(method, station string) string {
 	ack := new(MsgACK)
 	ack.Method = method
@@ -338,26 +582,28 @@ func process(method, station string) string {
 
 }
 
-type HandleFunction interface {
+type ServerHandleFunc interface {
 	Process(content string) string
 }
 
-// var processMap = map[string]HandleFunction{
-// 	"SM_SendHeartBeat":           new(HeartBeat),
-// 	"SM_SendChangedDeviceStatus": &ChangedDeviceStatus{},
-// 	"SM_SendDeviceOperInfo":      &SendDeviceOperInfo{},
-// 	"SM_SendAllLockUnLockInfo":   &SendAllLockUnLockInfo{},
-// }
-
-var processMap = map[string]HandleFunction{
-	"SM_SendHeartBeat":           new(HeartBeat),
-	"SM_SendChangedDeviceStatus": new(ChangedDeviceStatus),
-	"SM_SendDeviceOperInfo":      new(SendDeviceOperInfo),
-	"SM_SendAllLockUnLockInfo":   new(SendAllLockUnLockInfo),
-	"SM_SendGraphFileInfo":       new(SendGraphFileInfo),
-	"SM_SendDeviceInfo":          new(SendDeviceInfo),
-	"SM_SendEarthHookInfo":       new(SendEarthHookInfo),
-	"SM_SendLogicFormula":        new(SendLogicFormula),
-	"SM_SendKeyOperateRecord":    new(SendKeyOperateRecord),
-	"SM_SendStationBaseInfo":     new(SendStationBaseInfo),
+var processMap = map[string]ServerHandleFunc{
+	"SM_SendHeartBeat": new(HeartBeat),
+	// 子站返回
+	"SM_AskAllYXAndBS_ACK":           new(AskAllYXAndBS),
+	"SM_SendChangedDeviceStatus":     new(ChangedDeviceStatus),
+	"SM_SendChangedDeviceStatus_ACK": new(ChangedDeviceStatusAck),
+	"SM_SendDeviceOperInfo":          new(SendDeviceOperInfo),
+	"SM_SendDeviceOperInfo_ACK":      new(SendDeviceOperInfoAck),
+	"SM_SendDeviceLockUnLockInfo":    new(SendDeviceLockUnLockInfo),
+	"SM_SendAllLockUnLockInfo":       new(SendAllLockUnLockInfo),
+	"SM_SendGraphFileInfo":           new(SendGraphFileInfo),
+	"SM_SendDeviceInfo":              new(SendDeviceInfo),
+	"SM_SendEarthHookInfo":           new(SendEarthHookInfo),
+	"SM_SendLogicFormula":            new(SendLogicFormula),
+	"SM_SendKeyOperateRecord":        new(SendKeyOperateRecord),
+	"SM_SendStationBaseInfo":         new(SendStationBaseInfo),
+	"SM_SendWFDeviceInfo":            new(SendWFDeviceInfo),
+	"SM_SendWFDefect":                new(SendWFDefect),
+	"SM_SendHistoryTicket":           new(SendHistoryTicket),
+	"SM_SendRecallInfo":              new(SendRecallInfo),
 }
