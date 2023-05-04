@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"toolkit/internal/logger"
 	. "toolkit/internal/protocol/gen-go/PMA"
@@ -27,7 +28,7 @@ type Addr struct {
 }
 
 func (p *PMAImpl) RequestFunc(ctx context.Context, pmaMsg *PMAMsg) error {
-	fmt.Printf("Received message: %s\n", pmaMsg)
+	logger.Info("Received message: ", pmaMsg)
 	if p.Node == nil {
 		return errors.New("内部错误,连接失败,node为空")
 	}
@@ -52,7 +53,7 @@ func (p *PMAImpl) sendMsg(ctx context.Context, pmaMsg *PMAMsg) {
 	if node, ok := NP.poolNode[pmaMsg.Src]; ok {
 		node.SendMsg(p.Client, pmaMsg)
 	} else {
-
+		logger.Debug("not found node......", NP.poolNode, pmaMsg.Src)
 	}
 }
 
@@ -78,10 +79,14 @@ type PMAServiceNode struct {
 }
 
 func (np *NodePool) AddConn(n *PMAServiceNode) {
-	logger.Debug("AddConn.: src:%s, targets:%v, IP:%s", n.Src, n.Targets, n.Addr)
+	logger.Debug("AddConn...: ")
 	np.rwLock.Lock()
 	defer np.rwLock.Unlock()
 	np.pool[n] = true
+}
+
+func (np *NodePool) LenPool() int {
+	return len(np.pool)
 }
 
 func (n *PMAServiceNode) Register(clinet thrift.TTransport, msg *PMAMsg) {
@@ -118,7 +123,9 @@ func (n *PMAServiceNode) RegisterAck(clinet thrift.TTransport, msg *PMAMsg) {
 			logger.Error(string(debug.Stack()))
 		}
 	}()
-	ackMsg := new(PMAMsg)
+	ackMsg := &PMAMsg{
+		Head: make(map[string]string),
+	}
 	ackMsg.Head["func"] = "register"
 	ackMsg.Head["time"] = NowTime()
 	ackMsg.Head["requestId"] = msg.Head["requestId"]
@@ -135,37 +142,72 @@ func (n *PMAServiceNode) RegisterAck(clinet thrift.TTransport, msg *PMAMsg) {
 	ackMsg.Src = "cyg.test"
 	ackMsg.Targets = append(ackMsg.Targets, msg.Src)
 	ackMsg.Content = msg.Content
+	logger.Debug("register msg ack", ackMsg)
 	n.Client.RequestFunc(context.Background(), ackMsg)
 
 }
 
 func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
+
 	n.Sync.Lock()
 	defer n.Sync.Unlock()
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Error("Register,", err)
+			logger.Error("SendMsg,", err)
 			logger.Error(string(debug.Stack()))
-			n.msg = "Register err, 内部错误!"
+			n.msg = "SendMsg err, 内部错误!"
 		}
 	}()
+
+	if frame, ok := msg.Head["frame"]; ok {
+		arr := strings.Split(frame, "/")
+		if len(arr) == 2 {
+			ContentTemp += msg.Content
+			if arr[0] == arr[1] {
+				ContentTotal = ContentTemp
+				ContentTemp = ""
+			} else {
+				return
+			}
+		} else {
+			n.msg = "SendMsg, frame syntax"
+			return
+		}
+	} else {
+		ContentTotal = msg.Content
+	}
+
 	m := make(map[string]interface{}, 1)
-	ackMsg := new(PMAMsg)
+	ackMsg := &PMAMsg{
+		Head: make(map[string]string),
+	}
 	ackMsg.Head["func"] = "send"
 	ackMsg.Head["time"] = NowTime()
 	ackMsg.Head["requestId"] = msg.Head["requestId"]
+	ackMsg.Head["returnCode"] = "1"
+	ackMsg.Head["returnMsg"] = ""
 
 	ackMsg.Head["frame"] = "1/1"
 	ackMsg.Src = "cyg.test"
 	ackMsg.Targets = append(ackMsg.Targets, msg.Src)
 
-	err := json.Unmarshal([]byte(msg.Content), &m) //第二个参数要地址传递
+	err := json.Unmarshal([]byte(ContentTotal), &m) //第二个参数要地址传递
 	if err != nil {
 		logger.Error("err = ", err)
 		return
 	}
+
 	method := m["method"].(string)
-	ackMsg.Content = processMap[method].Process(msg.Content)
+	if function, ok := processMap[method]; ok {
+		logger.Debug("found function", &function)
+		ackMsg.Content = function.Process(ContentTotal)
+	} else {
+		ackMsg.Head["returnCode"] = "-2"
+		ackMsg.Head["returnMsg"] = fmt.Sprintf("not found function method:%s", method)
+		ackMsg.Content = "err"
+	}
+
+	logger.Debug("Send msg ack", ackMsg)
 	n.Client.RequestFunc(context.Background(), ackMsg)
 
 }
@@ -186,6 +228,10 @@ func GetNodeName(src, ip string) (name string, er error) {
 }
 
 var NP = NodePool{
+	pool:     make(map[*PMAServiceNode]bool),
 	poolNode: make(map[string]*PMAServiceNode),
 	rwLock:   new(sync.RWMutex),
 }
+
+var ContentTotal = ""
+var ContentTemp = ""

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"sync"
 	. "toolkit/internal/impl"
 	"toolkit/internal/logger"
 	. "toolkit/internal/protocol/gen-go/PMA"
@@ -23,7 +24,7 @@ func ServerStart() {
 	// go Httpserver()
 	// go tsslServer()
 	s := new(Controlloer)
-	s.SetAddr("127.0.0.1", 9090)
+	s.SetAddr("10.8.4.208", 6100)
 	// if cluster.IsCluster() {
 	// 	go clusterServer.ServerStart()
 	// }
@@ -133,9 +134,10 @@ func PMAProcessor(client thrift.TTransport, gorutineclose *bool, monitorChan cha
 	node := &PMAServiceNode{
 		Ts:     client,
 		Client: NewPMAClient(client),
+		Sync:   new(sync.Mutex),
 	}
 	NP.AddConn(node)
-
+	logger.Debug(NP.LenPool())
 	protocol := thrift.NewTBinaryProtocolConf(client, cfg)
 	handler := &PMAImpl{Client: client, Node: node}
 	processor := NewPMAServiceProcessor(handler)
