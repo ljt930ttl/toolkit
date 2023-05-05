@@ -45,7 +45,7 @@ func (p *PMAHandle) register(ctx context.Context, pmaMsg *PMAMsg) {
 
 func (p *PMAHandle) sendMsg(ctx context.Context, pmaMsg *PMAMsg) {
 	if node, ok := NP.poolNode[pmaMsg.Src]; ok {
-		node.SendMsg(p.Client, pmaMsg)
+		node.ReceSendMsg(p.Client, pmaMsg)
 	} else {
 		logger.Debug("not found node......", NP.poolNode, pmaMsg.Src)
 	}

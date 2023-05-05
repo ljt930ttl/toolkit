@@ -33,3 +33,14 @@ func RunHttpServer() {
 	s := initServer("127.0.0.1:9100", Router)
 	logger.Error(s.ListenAndServe().Error())
 }
+
+func RunThriftServer() {
+	// go Httpserver()
+	// go tsslServer()
+	s := new(Controlloer)
+	s.SetAddr("10.8.4.208", 9090)
+	// if cluster.IsCluster() {
+	// 	go clusterServer.ServerStart()
+	// }
+	s.Server()
+}
