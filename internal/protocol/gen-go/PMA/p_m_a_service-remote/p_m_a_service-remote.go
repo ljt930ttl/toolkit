@@ -12,8 +12,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"toolkit/internal/protocol/gen-go/PMA"
+
 	thrift "github.com/apache/thrift/lib/go/thrift"
-	"PMA"
 )
 
 var _ = PMA.GoUnusedProtection__

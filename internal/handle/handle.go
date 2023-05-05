@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"toolkit/internal/logger"
+	. "toolkit/internal/protocol/gen-go/PMA"
 
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
-type PMAImpl struct {
+type PMAHandle struct {
 	Ip      string
 	Port    int
 	Account string
@@ -20,7 +21,7 @@ type Addr struct {
 	IP string `json:"ip"`
 }
 
-func (p *PMAImpl) RequestFunc(ctx context.Context, pmaMsg *PMAMsg) error {
+func (p *PMAHandle) RequestFunc(ctx context.Context, pmaMsg *PMAMsg) error {
 	// logger.Debug("Received message: ", pmaMsg)
 	if p.Node == nil {
 		return errors.New("内部错误,连接失败,node为空")
@@ -37,12 +38,12 @@ func (p *PMAImpl) RequestFunc(ctx context.Context, pmaMsg *PMAMsg) error {
 	return nil
 }
 
-func (p *PMAImpl) register(ctx context.Context, pmaMsg *PMAMsg) {
+func (p *PMAHandle) register(ctx context.Context, pmaMsg *PMAMsg) {
 	p.Node.Register(p.Client, pmaMsg)
 	p.Node.RegisterAck(p.Client, pmaMsg)
 }
 
-func (p *PMAImpl) sendMsg(ctx context.Context, pmaMsg *PMAMsg) {
+func (p *PMAHandle) sendMsg(ctx context.Context, pmaMsg *PMAMsg) {
 	if node, ok := NP.poolNode[pmaMsg.Src]; ok {
 		node.SendMsg(p.Client, pmaMsg)
 	} else {

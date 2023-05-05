@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
-	. "toolkit/internal/impl"
+	. "toolkit/internal/handle"
 	"toolkit/internal/logger"
 	. "toolkit/internal/protocol/gen-go/PMA"
 
@@ -48,7 +48,7 @@ func (t *Controlloer) Server() {
 		logger.Error("server:", err.Error())
 		panic(err.Error())
 	}
-	handler := new(PMAImpl)
+	handler := new(PMAHandle)
 	processor := NewPMAServiceProcessor(handler)
 	server := NewTSimpleServer4(processor, serverTransport, transportFactory, protocolFactory)
 	fmt.Println("server listen:", t.ListenAddr())
@@ -140,7 +140,7 @@ func PMAProcessor(client thrift.TTransport, gorutineclose *bool, monitorChan cha
 	NP.AddConn(node)
 	logger.Debug(NP.LenPool())
 	protocol := thrift.NewTBinaryProtocolConf(client, cfg)
-	handler := &PMAImpl{Client: client, Node: node}
+	handler := &PMAHandle{Client: client, Node: node}
 	processor := NewPMAServiceProcessor(handler)
 	for {
 		ok, err := processor.Process(context.Background(), protocol, protocol)

@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/apache/thrift/lib/go/thrift"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"toolkit/internal/logger"
 	. "toolkit/internal/protocol/gen-go/PMA"
 	. "toolkit/internal/utils"
+
+	"github.com/apache/thrift/lib/go/thrift"
 )
 
 type NodePool struct {
