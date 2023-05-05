@@ -67,8 +67,5 @@ func splitLine(lines string) {
 func main() {
 	line := readfile()
 	splitLine(line)
-	// logger.SetConsole(true)
-	// logger.SetLevel(logger.LEVEL_DEBUG)
-	// service.ServerStart()
 
 }
