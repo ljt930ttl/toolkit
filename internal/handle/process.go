@@ -1,4 +1,4 @@
-package impl
+package handle
 
 import (
 	"encoding/json"
@@ -38,7 +38,7 @@ func (p *HeartBeat) Process(content string) string {
 		logger.Error(err)
 		return ""
 	}
-	p.count += 1
+	// p.count += 1
 	logger.Debug("HeartBeat process..", p)
 	return process("MS_HeartBeat_ACK", p.Station)
 }
@@ -239,7 +239,7 @@ type GraphData struct {
 }
 type SendGraphFileInfo struct {
 	BaseData
-	GraphData GraphData `json:"graphData"`
+	GraphData []GraphData `json:"graphData"`
 }
 
 func (p *SendGraphFileInfo) Process(content string) string {
@@ -303,7 +303,7 @@ type LogicalData struct {
 }
 type SendLogicFormula struct {
 	BaseData
-	LogicalData []LogicalData `json:"logicalData"`
+	LogicalData LogicalData `json:"logicalData"`
 }
 
 func (p *SendLogicFormula) Process(content string) string {

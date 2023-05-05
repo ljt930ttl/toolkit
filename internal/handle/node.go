@@ -1,61 +1,18 @@
-package impl
+package handle
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/apache/thrift/lib/go/thrift"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"toolkit/internal/logger"
 	. "toolkit/internal/protocol/gen-go/PMA"
 	. "toolkit/internal/utils"
-
-	"github.com/apache/thrift/lib/go/thrift"
 )
-
-type PMAImpl struct {
-	Ip      string
-	Port    int
-	Account string
-	// Pub    string //发布id
-	Node   *PMAServiceNode
-	Client thrift.TTransport
-}
-type Addr struct {
-	IP string `json:"ip"`
-}
-
-func (p *PMAImpl) RequestFunc(ctx context.Context, pmaMsg *PMAMsg) error {
-	logger.Info("Received message: ", pmaMsg)
-	if p.Node == nil {
-		return errors.New("内部错误,连接失败,node为空")
-	}
-	if pmaMsg.Head["func"] == "register" {
-		go p.register(ctx, pmaMsg)
-	}
-
-	if pmaMsg.Head["func"] == "send" {
-
-		go p.sendMsg(ctx, pmaMsg)
-	}
-
-	return nil
-}
-
-func (p *PMAImpl) register(ctx context.Context, pmaMsg *PMAMsg) {
-	p.Node.Register(p.Client, pmaMsg)
-	p.Node.RegisterAck(p.Client, pmaMsg)
-}
-
-func (p *PMAImpl) sendMsg(ctx context.Context, pmaMsg *PMAMsg) {
-	if node, ok := NP.poolNode[pmaMsg.Src]; ok {
-		node.SendMsg(p.Client, pmaMsg)
-	} else {
-		logger.Debug("not found node......", NP.poolNode, pmaMsg.Src)
-	}
-}
 
 type NodePool struct {
 	pool map[*PMAServiceNode]bool
@@ -99,6 +56,7 @@ func (n *PMAServiceNode) Register(clinet thrift.TTransport, msg *PMAMsg) {
 			n.msg = "Register err, 内部错误!"
 		}
 	}()
+	logger.Info("Received message-register:\n", msg.Content)
 	addr := new(Addr)
 	json.Unmarshal([]byte(msg.Content), &addr)
 
@@ -106,11 +64,6 @@ func (n *PMAServiceNode) Register(clinet thrift.TTransport, msg *PMAMsg) {
 	n.Src = msg.Src
 	n.Targets = msg.Targets
 	n.IP = addr.IP
-	// thrift.TServerSocket(p.Client)
-	// name, err := GetNodeName(n.Src, n.IP)
-	// if err != nil {
-	// 	n.msg = err.Error()
-	// }
 
 	NP.poolNode[n.Src] = n
 	n.IsRegister = true
@@ -142,13 +95,12 @@ func (n *PMAServiceNode) RegisterAck(clinet thrift.TTransport, msg *PMAMsg) {
 	ackMsg.Src = "cyg.test"
 	ackMsg.Targets = append(ackMsg.Targets, msg.Src)
 	ackMsg.Content = msg.Content
-	logger.Debug("register msg ack", ackMsg)
+	logger.Debug("register msg ack:\n", ackMsg)
 	n.Client.RequestFunc(context.Background(), ackMsg)
 
 }
 
 func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
-
 	n.Sync.Lock()
 	defer n.Sync.Unlock()
 	defer func() {
@@ -159,6 +111,7 @@ func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
 		}
 	}()
 
+	logger.Info("Received message-send:\n", msg.Content)
 	if frame, ok := msg.Head["frame"]; ok {
 		arr := strings.Split(frame, "/")
 		if len(arr) == 2 {
@@ -199,7 +152,7 @@ func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
 
 	method := m["method"].(string)
 	if function, ok := processMap[method]; ok {
-		logger.Debug("found function", &function)
+		// logger.Debug("found function", &function)
 		ackMsg.Content = function.Process(ContentTotal)
 	} else {
 		ackMsg.Head["returnCode"] = "-2"
@@ -207,7 +160,7 @@ func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
 		ackMsg.Content = "err"
 	}
 
-	logger.Debug("Send msg ack", ackMsg)
+	logger.Debug("Send msg ack:\n", ackMsg)
 	n.Client.RequestFunc(context.Background(), ackMsg)
 
 }

@@ -24,7 +24,7 @@ func ServerStart() {
 	// go Httpserver()
 	// go tsslServer()
 	s := new(Controlloer)
-	s.SetAddr("192.168.154.128", 6100)
+	s.SetAddr("10.8.4.208", 9090)
 	// if cluster.IsCluster() {
 	// 	go clusterServer.ServerStart()
 	// }
