@@ -101,7 +101,7 @@ func (n *PMAServiceNode) RegisterAck(clinet thrift.TTransport, msg *PMAMsg) {
 
 }
 
-func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
+func (n *PMAServiceNode) ReceSendMsg(clinet thrift.TTransport, msg *PMAMsg) {
 	n.Sync.Lock()
 	defer n.Sync.Unlock()
 	defer func() {
@@ -131,34 +131,36 @@ func (n *PMAServiceNode) SendMsg(clinet thrift.TTransport, msg *PMAMsg) {
 		ContentTotal = msg.Content
 	}
 
-	m := make(map[string]interface{}, 1)
+}
+
+func (n *PMAServiceNode) SendMsg(requestId, target, ContentTotal string) {
 	ackMsg := &PMAMsg{
 		Head: make(map[string]string),
 	}
 	ackMsg.Head["func"] = "send"
 	ackMsg.Head["time"] = NowTime()
-	ackMsg.Head["requestId"] = msg.Head["requestId"]
+	ackMsg.Head["requestId"] = requestId
 	ackMsg.Head["returnCode"] = "1"
 	ackMsg.Head["returnMsg"] = ""
 
 	ackMsg.Head["frame"] = "1/1"
 	ackMsg.Src = "cyg.test"
-	ackMsg.Targets = append(ackMsg.Targets, msg.Src)
+	ackMsg.Targets = append(ackMsg.Targets, target)
 
+	// 生成content
+	m := make(map[string]interface{}, 1)
 	err := json.Unmarshal([]byte(ContentTotal), &m) //第二个参数要地址传递
 	if err != nil {
 		logger.Error("err = ", err)
 		return
 	}
-
 	method := m["method"].(string)
-	if function, ok := processMap[method]; ok {
+	if handle, ok := processMap[method]; ok {
 		// logger.Debug("found function", &function)
-		ackMsg.Content = function.Process(ContentTotal)
+		ackMsg.Content = handle.Process(ContentTotal)
 	} else {
 		ackMsg.Head["returnCode"] = "-2"
 		ackMsg.Head["returnMsg"] = fmt.Sprintf("not found function method:%s", method)
-		ackMsg.Content = "err"
 	}
 
 	logger.Debug("Send msg ack:\n", ackMsg)

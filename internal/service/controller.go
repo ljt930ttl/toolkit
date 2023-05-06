@@ -20,17 +20,6 @@ type Controlloer struct {
 
 var cfg *thrift.TConfiguration = nil
 
-func ServerStart() {
-	// go Httpserver()
-	// go tsslServer()
-	s := new(Controlloer)
-	s.SetAddr("10.8.4.208", 9090)
-	// if cluster.IsCluster() {
-	// 	go clusterServer.ServerStart()
-	// }
-	s.Server()
-}
-
 func (t *Controlloer) SetAddr(ip string, port int) {
 	t.Port = port
 	t.Ip = ip

@@ -9,6 +9,6 @@ func main() {
 
 	logger.SetConsole(true)
 	logger.SetLevel(logger.LEVEL_DEBUG)
-	service.ServerStart()
+	service.RunThriftServer()
 
 }

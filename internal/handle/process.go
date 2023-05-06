@@ -40,7 +40,7 @@ func (p *HeartBeat) Process(content string) string {
 	}
 	// p.count += 1
 	logger.Debug("HeartBeat process..", p)
-	return process("MS_HeartBeat_ACK", p.Station)
+	return genAckMsg("MS_HeartBeat_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -124,7 +124,7 @@ func (p *ChangedDeviceStatus) Process(content string) string {
 	// 标注一下
 	p.direction = "SM"
 	logger.Debug("ChangedDeviceStatus process..", p)
-	return process("MS_SendChangedDeviceStatus_ACK", p.Station)
+	return genAckMsg("MS_SendChangedDeviceStatus_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -170,7 +170,7 @@ func (p *SendDeviceOperInfo) Process(content string) string {
 	// 标注一下
 	p.direction = "SM"
 	logger.Debug("SendDeviceOperInfo process..", p)
-	return process("MS_SendDeviceOperInfo_ACK", p.Station)
+	return genAckMsg("MS_SendDeviceOperInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -194,7 +194,7 @@ func (p *SendDeviceLockUnLockInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendDeviceLockUnLockInfo process..", p)
-	return process("MS_SendDeviceLockUnLockInfo_ACK", p.Station)
+	return genAckMsg("MS_SendDeviceLockUnLockInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -249,7 +249,7 @@ func (p *SendGraphFileInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendGraphFileInfo process..", p)
-	return process("MS_SendGraphFileInfo_ACK", p.Station)
+	return genAckMsg("MS_SendGraphFileInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -273,7 +273,7 @@ func (p *SendDeviceInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendDeviceInfo process..", p)
-	return process("MS_SendDeviceInfo_ACK", p.Station)
+	return genAckMsg("MS_SendDeviceInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -292,7 +292,7 @@ func (p *SendEarthHookInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendEarthHookInfo process..", p)
-	return process("MS_SendEarthHookInfo_ACK", p.Station)
+	return genAckMsg("MS_SendEarthHookInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -313,7 +313,7 @@ func (p *SendLogicFormula) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendLogicFormula process..", p)
-	return process("MS_SendLogicFormula_ACK", p.Station)
+	return genAckMsg("MS_SendLogicFormula_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -343,7 +343,7 @@ func (p *SendKeyOperateRecord) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendKeyOperateRecord process..", p)
-	return process("MS_SendKeyOperateRecord_ACK", p.Station)
+	return genAckMsg("MS_SendKeyOperateRecord_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -405,7 +405,7 @@ func (p *SendStationBaseInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendStationBaseInfo process..", p)
-	return process("MS_SendStationBaseInfo_ACK", p.Station)
+	return genAckMsg("MS_SendStationBaseInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -448,7 +448,7 @@ func (p *SendWFDeviceInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendWFDeviceInfo process..", p)
-	return process("MS_SendWFDeviceInfo_ACK", p.Station)
+	return genAckMsg("MS_SendWFDeviceInfo_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -488,7 +488,7 @@ func (p *SendWFDefect) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendWFDefect process..", p)
-	return process("MS_SendWFDefect_ACK", p.Station)
+	return genAckMsg("MS_SendWFDefect_ACK", p.Station)
 }
 
 // ------------------end--------------------
@@ -535,7 +535,7 @@ func (p *SendHistoryTicket) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendHistoryTicket process..", p)
-	return process("MS_SendHistoryTicket_ACK", p.Station)
+	return genAckMsg("MS_SendHistoryTicket_ACK", p.Station)
 }
 
 // 上送操作票追忆(黑匣子)信息（新疆）
@@ -566,12 +566,12 @@ func (p *SendRecallInfo) Process(content string) string {
 		return ""
 	}
 	logger.Debug("SendRecallInfo process..", p)
-	return process("MS_SendRecallInfo_ACK", p.Station)
+	return genAckMsg("MS_SendRecallInfo_ACK", p.Station)
 }
 
 // ------------------end-------------------
 
-func process(method, station string) string {
+func genAckMsg(method, station string) string {
 	ack := new(MsgACK)
 	ack.Method = method
 	ack.IsAck = "1"
