@@ -15,6 +15,10 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 )
 
+var ContentTotal = ""
+var ContentTemp = ""
+var frameCount = 0
+
 type NodePool struct {
 	pool map[*PMAServiceNode]bool
 	// 注册了的节点
@@ -112,28 +116,32 @@ func (n *PMAServiceNode) ReceSendMsg(clinet thrift.TTransport, msg *PMAMsg) {
 		}
 	}()
 
-	logger.Info("Received message-send:\n", msg.Content)
+	// logger.Info("Received message-send:\n", msg.Content)
 	if frame, ok := msg.Head["frame"]; ok {
 		arr := strings.Split(frame, "/")
+		frameCount += 1
 		if len(arr) == 2 {
 			ContentTemp += msg.Content
 			if arr[0] == arr[1] {
 				ContentTotal = ContentTemp
 				ContentTemp = ""
+				frameCount = 0
 			} else {
 				return
 			}
 		} else {
 			n.msg = "SendMsg, frame syntax"
+			frameCount = 0
 			return
 		}
 	} else {
 		ContentTotal = msg.Content
 	}
-
+	logger.Info("frameCount:", frameCount)
+	n.SendMsg(msg.Head["requestId"], msg.Head["src"], ContentTotal, "1/1")
 }
 
-func (n *PMAServiceNode) SendMsg(requestId, target, ContentTotal string) {
+func (n *PMAServiceNode) SendMsg(requestId, target, ContentTotal, frame string) {
 	ackMsg := &PMAMsg{
 		Head: make(map[string]string),
 	}
@@ -143,7 +151,7 @@ func (n *PMAServiceNode) SendMsg(requestId, target, ContentTotal string) {
 	ackMsg.Head["returnCode"] = "1"
 	ackMsg.Head["returnMsg"] = ""
 
-	ackMsg.Head["frame"] = "1/1"
+	ackMsg.Head["frame"] = frame
 	ackMsg.Src = "cyg.test"
 	ackMsg.Targets = append(ackMsg.Targets, target)
 
@@ -163,7 +171,7 @@ func (n *PMAServiceNode) SendMsg(requestId, target, ContentTotal string) {
 		ackMsg.Head["returnMsg"] = fmt.Sprintf("not found function method:%s", method)
 	}
 
-	logger.Debug("Send msg ack:\n", ackMsg)
+	// logger.Debug("Send msg ack:\n", ackMsg)
 	n.Client.RequestFunc(context.Background(), ackMsg)
 
 }
@@ -188,6 +196,3 @@ var NP = NodePool{
 	poolNode: make(map[string]*PMAServiceNode),
 	rwLock:   new(sync.RWMutex),
 }
-
-var ContentTotal = ""
-var ContentTemp = ""

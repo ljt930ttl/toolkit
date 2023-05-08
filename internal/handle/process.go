@@ -193,7 +193,7 @@ func (p *SendDeviceLockUnLockInfo) Process(content string) string {
 		logger.Error(err)
 		return ""
 	}
-	logger.Debug("SendDeviceLockUnLockInfo process..", p)
+	// logger.Debug("SendDeviceLockUnLockInfo process..", p)
 	return genAckMsg("MS_SendDeviceLockUnLockInfo_ACK", p.Station)
 }
 
@@ -248,7 +248,7 @@ func (p *SendGraphFileInfo) Process(content string) string {
 		logger.Error(err)
 		return ""
 	}
-	logger.Debug("SendGraphFileInfo process..", p)
+	// logger.Debug("SendGraphFileInfo process..", p)
 	return genAckMsg("MS_SendGraphFileInfo_ACK", p.Station)
 }
 
